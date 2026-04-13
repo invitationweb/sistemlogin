@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Website Organisasi</title>
+    <style>
+        /* Mengatur font dan warna dasar */
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* Kontainer Utama Login */
+        .login-container {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h2 {
+            margin: 0;
+            color: var(--text-color);
+            font-size: 1.5rem;
+        }
+
+        .login-header p {
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
+        /* Styling Form */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* Tombol Login */
+        .login-button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Notifikasi Pesan */
+        #message-box {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            display: none;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+
+        .success {
+            background-color: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+        }
+
+        .footer-links a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="login-header">
+            <h2>Selamat Datang</h2>
+            <p>Silakan masuk ke akun organisasi Anda</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Nama Pengguna / Email</label>
+                <input type="text" id="username" name="username" placeholder="Masukkan username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Kata Sandi</label>
+                <input type="password" id="password" name="password" placeholder="Masukkan kata sandi" required>
+            </div>
+
+            <button type="submit" class="login-button">Masuk Sekarang</button>
+        </form>
+
+        <div id="message-box"></div>
+
+        <div class="footer-links">
+            <p>Lupa kata sandi? <a href="#">Klik di sini</a></p>
+            <p>Belum punya akun? <a href="#">Daftar</a></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const messageBox = document.getElementById('message-box');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Simulasi proses login
+            messageBox.style.display = 'block';
+            messageBox.className = ''; // Reset class
+            messageBox.innerText = 'Sedang memproses...';
+
+            setTimeout(() => {
+                if (username === "admin" && password === "admin123") {
+                    messageBox.className = 'success';
+                    messageBox.innerText = 'Login Berhasil! Mengalihkan...';
+                    // Skenario pengalihan setelah login berhasil
+                    // window.location.href = 'dashboard.html';
+                } else {
+                    messageBox.className = 'error';
+                    messageBox.innerText = 'Kesalahan: Username atau Password salah.';
+                }
+            }, 1500);
+        });
+    </script>
+
+</body>
+</html>

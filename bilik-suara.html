@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilik Suara</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-red-800 text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h2 class="font-bold">PILKETOS 2026</h2>
+            <span id="namaUser" class="text-sm">Memuat...</span>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <h1 class="text-center text-xl font-bold mb-8">SURAT SUARA DIGITAL</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Contoh Kartu Kandidat -->
+            <div class="bg-white p-4 rounded-xl shadow border-2 border-transparent hover:border-red-800 transition">
+                <div class="bg-gray-300 h-40 rounded-lg mb-4 flex items-center justify-center text-gray-500">FOTO KANDIDAT 01</div>
+                <h3 class="text-center font-bold text-lg">KANDIDAT 01</h3>
+                <button onclick="alert('Berhasil Memilih!')" class="w-full mt-4 bg-red-800 text-white py-2 rounded-lg">PILIH SEKARANG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = () => {
+            const data = sessionStorage.getItem('pemilih_aktif');
+            if (!data) {
+                window.location.href = 'index.html';
+            } else {
+                const user = JSON.parse(data);
+                document.getElementById('namaUser').innerText = "Halo, " + user.nama;
+            }
+        }
+    </script>
+</body>
+</html>

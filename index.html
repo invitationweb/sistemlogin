@@ -3,147 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Pemilih | Pilketos 2026</title>
+    <title>Login Pilketos</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        }
-        .bg-maroon { background-color: #800000; }
-        .text-maroon { color: #800000; }
-        .input-focus:focus { border-color: #800000; box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.1); }
-    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
-
-    <div class="w-full max-w-[400px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white">
-        
-        <!-- Header Visual -->
-        <div class="bg-maroon p-10 text-center text-white relative">
-            <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/graphy.png')]"></div>
-            <div class="relative z-10">
-                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-inner">
-                    <i class="fa-solid fa-id-card-clip text-3xl"></i>
-                </div>
-                <h1 class="text-2xl font-black tracking-tight uppercase">E-Voting</h1>
-                <p class="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Sistem Pemilihan Ketua OSIS</p>
-            </div>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm border-t-4 border-red-800">
+        <h1 class="text-2xl font-bold text-center text-red-800 mb-6">LOGIN PEMILIH</h1>
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2">Masukkan NISN</label>
+            <input type="number" id="nisnInput" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-800" placeholder="Contoh: 1">
         </div>
-
-        <!-- Form Login -->
-        <div class="p-8 md:p-10">
-            <div class="mb-8">
-                <h2 class="text-lg font-bold text-gray-800">Verifikasi Pemilih</h2>
-                <p class="text-gray-400 text-xs mt-1">Silakan masukkan Nomor Induk Siswa Anda untuk melanjutkan ke bilik suara.</p>
-            </div>
-
-            <div class="space-y-6">
-                <!-- Input NISN -->
-                <div class="relative">
-                    <label class="text-[10px] font-black text-gray-400 uppercase ml-1 mb-2 block tracking-widest">Nomor Induk Siswa (NISN)</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                            <i class="fa-solid fa-fingerprint"></i>
-                        </span>
-                        <input type="number" id="nisnInput" 
-                               placeholder="Contoh: 123456" 
-                               class="w-full pl-12 pr-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none transition-all input-focus font-bold text-gray-700">
-                    </div>
-                </div>
-
-                <!-- Info Box (Hidden by default) -->
-                <div id="statusBox" class="hidden p-4 rounded-2xl text-xs font-bold flex items-center gap-3">
-                    <i id="statusIcon" class="fa-solid"></i>
-                    <p id="statusText"></p>
-                </div>
-
-                <!-- Submit Button -->
-                <button onclick="prosesVerifikasi()" id="btnSubmit" 
-                        class="w-full bg-maroon text-white font-black py-5 rounded-2xl hover:bg-red-950 transform active:scale-95 transition-all shadow-xl shadow-maroon/20 flex items-center justify-center gap-3">
-                    <span>KONFIRMASI DATA</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-
-            <div class="mt-10 pt-6 border-t border-gray-50 text-center">
-                <p class="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em]">Mandiri • Jujur • Adil</p>
-            </div>
-        </div>
+        <button onclick="prosesLogin()" class="w-full bg-red-800 text-white font-bold py-2 rounded-lg hover:bg-red-900 transition">MASUK</button>
     </div>
 
     <script>
-        // Simulasi Database di GitHub/Lokal
-        const DATABASE_VOTERS = [
-            { "nisn": "112233", "nama": "Fauzan Ramadhan", "status": "belum" },
-            { "nisn": "445566", "nama": "Siti Nurhaliza", "status": "sudah" },
-            { "nisn": "778899", "nama": "Dimas Pratama", "status": "belum" }
-        ];
+        async function prosesLogin() {
+            const val = document.getElementById('nisnInput').value;
+            if(!val) return alert("Isi NISN dulu!");
 
-        async function prosesVerifikasi() {
-            const input = document.getElementById('nisnInput').value;
-            const btn = document.getElementById('btnSubmit');
-            const box = document.getElementById('statusBox');
-            const text = document.getElementById('statusText');
-            const icon = document.getElementById('statusIcon');
+            try {
+                const res = await fetch('voters.json');
+                const data = await res.json();
+                
+                // Mencocokkan input dengan data JSON secara akurat
+                const user = data.find(s => String(s.nisn) === String(val));
 
-            if (!input) {
-                updateStatus("NISN tidak boleh kosong!", "error");
-                return;
-            }
-
-            // Animasi Loading
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Memverifikasi...';
-            box.classList.add('hidden');
-
-            // Simulasi Delay Server 1 detik
-            setTimeout(() => {
-                const siswa = DATABASE_VOTERS.find(s => s.nisn === input);
-
-                if (siswa) {
-                    if (siswa.status === "sudah") {
-                        updateStatus(`Maaf ${siswa.nama}, Anda sudah memilih sebelumnya.`, "error");
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>KONFIRMASI DATA</span> <i class="fa-solid fa-arrow-right"></i>';
-                    } else {
-                        updateStatus(`Data Ditemukan! Selamat datang, ${siswa.nama}.`, "success");
-                        
-                        // Simpan ke Session
-                        sessionStorage.setItem('pemilih_aktif', JSON.stringify(siswa));
-
-                        // Redirect ke bilik suara
-                        setTimeout(() => {
-                            // window.location.href = 'bilik-suara.html'; 
-                            alert("Berhasil! Menuju ke Bilik Suara...");
-                        }, 1500);
-                    }
+                if (user) {
+                    sessionStorage.setItem('pemilih_aktif', JSON.stringify(user));
+                    window.location.href = 'bilik-suara.html';
                 } else {
-                    updateStatus("NISN tidak terdaftar di database panitia.", "error");
-                    btn.disabled = false;
-                    btn.innerHTML = '<span>KONFIRMASI DATA</span> <i class="fa-solid fa-arrow-right"></i>';
+                    alert("NISN " + val + " tidak terdaftar!");
                 }
-            }, 1000);
-        }
-
-        function updateStatus(pesan, tipe) {
-            const box = document.getElementById('statusBox');
-            const text = document.getElementById('statusText');
-            const icon = document.getElementById('statusIcon');
-
-            box.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'bg-green-50', 'text-green-600', 'bg-orange-50', 'text-orange-600');
-            
-            if (tipe === "success") {
-                box.classList.add('bg-green-50', 'text-green-600');
-                icon.className = "fa-solid fa-circle-check text-lg";
-            } else {
-                box.classList.add('bg-red-50', 'text-red-600');
-                icon.className = "fa-solid fa-circle-exclamation text-lg";
+            } catch (err) {
+                alert("Gagal mengambil data! Pastikan sudah di-deploy di GitHub.");
             }
-
-            text.innerText = pesan;
         }
     </script>
 </body>

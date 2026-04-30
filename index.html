@@ -13,42 +13,38 @@
             <label class="block text-gray-700 text-sm font-bold mb-2">Masukkan NISN</label>
             <input type="number" id="nisnInput" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-800" placeholder="Contoh: 1">
         </div>
+        <!-- Pastikan onclick="prosesLogin()" tertulis dengan benar -->
         <button onclick="prosesLogin()" class="w-full bg-red-800 text-white font-bold py-2 rounded-lg hover:bg-red-900 transition">MASUK</button>
     </div>
 
     <script>
-        <script>
-    async function prosesLogin() {
-        const val = document.getElementById('nisnInput').value;
-        if(!val) return alert("Isi NISN dulu!");
+        function prosesLogin() {
+            const val = document.getElementById('nisnInput').value;
+            
+            if(!val) {
+                alert("Silakan isi NISN terlebih dahulu!");
+                return;
+            }
 
-        // DATABASE INTERNAL (Ditanam langsung agar anti-gagal)
-        const dataSiswa = [
-            { "nisn": "1", "nama": "SISWA TESTER 01", "status": "belum" },
-            { "nisn": "2", "nama": "SISWA TESTER 02", "status": "belum" },
-            { "nisn": "3", "nama": "SISWA TESTER 03", "status": "belum" },
-            { "nisn": "4", "nama": "SISWA TESTER 04", "status": "belum" },
-            { "nisn": "5", "nama": "SISWA TESTER 05", "status": "belum" },
-            { "nisn": "6", "nama": "SISWA TESTER 06", "status": "belum" },
-            { "nisn": "7", "nama": "SISWA TESTER 07", "status": "belum" },
-            { "nisn": "8", "nama": "SISWA TESTER 08", "status": "belum" },
-            { "nisn": "9", "nama": "SISWA TESTER 09", "status": "belum" },
-            { "nisn": "10", "nama": "SISWA TESTER 10", "status": "belum" }
-        ];
+            // Data Siswa (Ditanam langsung agar tombol tidak macet)
+            const dataSiswa = [
+                { "nisn": "1", "nama": "SISWA TESTER 01" },
+                { "nisn": "2", "nama": "SISWA TESTER 02" },
+                { "nisn": "3", "nama": "SISWA TESTER 03" },
+                { "nisn": "4", "nama": "SISWA TESTER 04" },
+                { "nisn": "5", "nama": "SISWA TESTER 05" }
+            ];
 
-        // Cari data yang cocok
-        const user = dataSiswa.find(s => String(s.nisn) === String(val));
+            const user = dataSiswa.find(s => String(s.nisn) === String(val));
 
-        if (user) {
-            // Simpan ke memori browser
-            sessionStorage.setItem('pemilih_aktif', JSON.stringify(user));
-            // Pindah ke halaman bilik-suara.html (Pastikan namanya sudah tanpa spasi)
-            window.location.href = 'bilik-suara.html';
-        } else {
-            alert("NISN " + val + " tidak terdaftar!");
+            if (user) {
+                sessionStorage.setItem('pemilih_aktif', JSON.stringify(user));
+                // Pastikan nama file ini sesuai dengan yang ada di GitHub
+                window.location.href = 'bilik-suara.html';
+            } else {
+                alert("NISN " + val + " tidak ditemukan!");
+            }
         }
-    }
-</script>
     </script>
 </body>
 </html>

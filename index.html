@@ -3,192 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Website Organisasi</title>
+    <title>Login Pemilih | Pilketos 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <style>
-        /* Mengatur font dan warna dasar */
-        :root {
-            --primary-color: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg-color: #f3f4f6;
-            --text-color: #1f2937;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        /* Kontainer Utama Login */
-        .login-container {
-            background-color: #ffffff;
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .login-header h2 {
-            margin: 0;
-            color: var(--text-color);
-            font-size: 1.5rem;
-        }
-
-        .login-header p {
-            color: #6b7280;
-            margin-top: 0.5rem;
-        }
-
-        /* Styling Form */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #374151;
-            font-weight: 500;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
-
-        /* Tombol Login */
-        .login-button {
-            width: 100%;
-            padding: 0.75rem;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .login-button:hover {
-            background-color: var(--primary-hover);
-        }
-
-        /* Notifikasi Pesan */
-        #message-box {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 6px;
-            display: none;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .error {
-            background-color: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fca5a5;
-        }
-
-        .success {
-            background-color: #dcfce7;
-            color: #15803d;
-            border: 1px solid #86efac;
-        }
-
-        .footer-links {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.875rem;
-        }
-
-        .footer-links a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
+        .bg-maroon { background-color: #800000; }
+        .text-maroon { color: #800000; }
+        .input-focus:focus { border-color: #800000; box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.1); }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="login-container">
-        <div class="login-header">
-            <h2>Selamat Datang</h2>
-            <p>Silakan masuk ke akun organisasi Anda</p>
+    <div class="w-full max-w-[400px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white">
+        
+        <!-- Header Visual -->
+        <div class="bg-maroon p-10 text-center text-white relative">
+            <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/graphy.png')]"></div>
+            <div class="relative z-10">
+                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-inner">
+                    <i class="fa-solid fa-id-card-clip text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tight uppercase">E-Voting</h1>
+                <p class="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Sistem Pemilihan Ketua OSIS</p>
+            </div>
         </div>
 
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">Nama Pengguna / Email</label>
-                <input type="text" id="username" name="username" placeholder="Masukkan username" required>
+        <!-- Form Login -->
+        <div class="p-8 md:p-10">
+            <div class="mb-8">
+                <h2 class="text-lg font-bold text-gray-800">Verifikasi Pemilih</h2>
+                <p class="text-gray-400 text-xs mt-1">Silakan masukkan Nomor Induk Siswa Anda untuk melanjutkan ke bilik suara.</p>
             </div>
 
-            <div class="form-group">
-                <label for="password">Kata Sandi</label>
-                <input type="password" id="password" name="password" placeholder="Masukkan kata sandi" required>
+            <div class="space-y-6">
+                <!-- Input NISN -->
+                <div class="relative">
+                    <label class="text-[10px] font-black text-gray-400 uppercase ml-1 mb-2 block tracking-widest">Nomor Induk Siswa (NISN)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                            <i class="fa-solid fa-fingerprint"></i>
+                        </span>
+                        <input type="number" id="nisnInput" 
+                               placeholder="Contoh: 123456" 
+                               class="w-full pl-12 pr-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none transition-all input-focus font-bold text-gray-700">
+                    </div>
+                </div>
+
+                <!-- Info Box (Hidden by default) -->
+                <div id="statusBox" class="hidden p-4 rounded-2xl text-xs font-bold flex items-center gap-3">
+                    <i id="statusIcon" class="fa-solid"></i>
+                    <p id="statusText"></p>
+                </div>
+
+                <!-- Submit Button -->
+                <button onclick="prosesVerifikasi()" id="btnSubmit" 
+                        class="w-full bg-maroon text-white font-black py-5 rounded-2xl hover:bg-red-950 transform active:scale-95 transition-all shadow-xl shadow-maroon/20 flex items-center justify-center gap-3">
+                    <span>KONFIRMASI DATA</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
             </div>
 
-            <button type="submit" class="login-button">Masuk Sekarang</button>
-        </form>
-
-        <div id="message-box"></div>
-
-        <div class="footer-links">
-            <p>Lupa kata sandi? <a href="#">Klik di sini</a></p>
-            <p>Belum punya akun? <a href="#">Daftar</a></p>
+            <div class="mt-10 pt-6 border-t border-gray-50 text-center">
+                <p class="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em]">Mandiri • Jujur • Adil</p>
+            </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const messageBox = document.getElementById('message-box');
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+        // Simulasi Database di GitHub/Lokal
+        const DATABASE_VOTERS = [
+            { "nisn": "112233", "nama": "Fauzan Ramadhan", "status": "belum" },
+            { "nisn": "445566", "nama": "Siti Nurhaliza", "status": "sudah" },
+            { "nisn": "778899", "nama": "Dimas Pratama", "status": "belum" }
+        ];
 
-            // Simulasi proses login
-            messageBox.style.display = 'block';
-            messageBox.className = ''; // Reset class
-            messageBox.innerText = 'Sedang memproses...';
+        async function prosesVerifikasi() {
+            const input = document.getElementById('nisnInput').value;
+            const btn = document.getElementById('btnSubmit');
+            const box = document.getElementById('statusBox');
+            const text = document.getElementById('statusText');
+            const icon = document.getElementById('statusIcon');
 
+            if (!input) {
+                updateStatus("NISN tidak boleh kosong!", "error");
+                return;
+            }
+
+            // Animasi Loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Memverifikasi...';
+            box.classList.add('hidden');
+
+            // Simulasi Delay Server 1 detik
             setTimeout(() => {
-                if (username === "admin" && password === "admin123") {
-                    messageBox.className = 'success';
-                    messageBox.innerText = 'Login Berhasil! Mengalihkan...';
-                    // Skenario pengalihan setelah login berhasil
-                    // window.location.href = 'dashboard.html';
-                } else {
-                    messageBox.className = 'error';
-                    messageBox.innerText = 'Kesalahan: Username atau Password salah.';
-                }
-            }, 1500);
-        });
-    </script>
+                const siswa = DATABASE_VOTERS.find(s => s.nisn === input);
 
+                if (siswa) {
+                    if (siswa.status === "sudah") {
+                        updateStatus(`Maaf ${siswa.nama}, Anda sudah memilih sebelumnya.`, "error");
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>KONFIRMASI DATA</span> <i class="fa-solid fa-arrow-right"></i>';
+                    } else {
+                        updateStatus(`Data Ditemukan! Selamat datang, ${siswa.nama}.`, "success");
+                        
+                        // Simpan ke Session
+                        sessionStorage.setItem('pemilih_aktif', JSON.stringify(siswa));
+
+                        // Redirect ke bilik suara
+                        setTimeout(() => {
+                            // window.location.href = 'bilik-suara.html'; 
+                            alert("Berhasil! Menuju ke Bilik Suara...");
+                        }, 1500);
+                    }
+                } else {
+                    updateStatus("NISN tidak terdaftar di database panitia.", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>KONFIRMASI DATA</span> <i class="fa-solid fa-arrow-right"></i>';
+                }
+            }, 1000);
+        }
+
+        function updateStatus(pesan, tipe) {
+            const box = document.getElementById('statusBox');
+            const text = document.getElementById('statusText');
+            const icon = document.getElementById('statusIcon');
+
+            box.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'bg-green-50', 'text-green-600', 'bg-orange-50', 'text-orange-600');
+            
+            if (tipe === "success") {
+                box.classList.add('bg-green-50', 'text-green-600');
+                icon.className = "fa-solid fa-circle-check text-lg";
+            } else {
+                box.classList.add('bg-red-50', 'text-red-600');
+                icon.className = "fa-solid fa-circle-exclamation text-lg";
+            }
+
+            text.innerText = pesan;
+        }
+    </script>
 </body>
 </html>

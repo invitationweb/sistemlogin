@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilik Suara | Pilketos 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .bg-maroon { background-color: #800000; }
+        .text-maroon { color: #800000; }
+        .card-active { border-color: #800000; box-shadow: 0 20px 25px -5px rgba(128, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <!-- Header Info -->
+    <header class="bg-white border-b border-gray-100 px-6 py-4 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-maroon p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase leading-none">Pemilih Aktif:</p>
+                    <h2 id="displayNama" class="font-black text-gray-800 leading-tight tracking-tight">Memuat...</h2>
+                </div>
+            </div>
+            <button onclick="logout()" class="text-xs font-bold text-red-500 uppercase tracking-widest">Batal</button>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-6 mt-6">
+        <div class="text-center mb-10">
+            <h1 class="text-2xl font-black text-gray-800 uppercase tracking-tight">Surat Suara Digital</h1>
+            <p class="text-gray-400 text-xs mt-2">Tentukan pilihan Anda dengan bijak. Pilihan tidak dapat diubah setelah dikirim.</p>
+        </div>
+
+        <!-- Grid Kandidat -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Kandidat 01 -->
+            <div class="bg-white rounded-[2.5rem] border-2 border-transparent p-6 transition-all hover:border-maroon/30 group">
+                <div class="relative overflow-hidden rounded-[2rem] h-80 bg-gray-100 mb-6">
+                    <img src="https://ui-avatars.com/api/?name=01&background=800000&color=fff&size=512" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-maroon text-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg">01</div>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-xl font-black text-gray-800 uppercase">Nama Calon 01</h3>
+                    <p class="text-gray-400 text-sm mt-1 mb-6 italic">"Visi: Mewujudkan OSIS yang Kreatif dan Digital"</p>
+                    <button onclick="pilihKandidat(1, 'Nama Calon 01')" class="w-full bg-gray-100 text-gray-800 font-black py-4 rounded-2xl hover:bg-maroon hover:text-white transition-all shadow-sm">
+                        PILIH KANDIDAT
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kandidat 02 -->
+            <div class="bg-white rounded-[2.5rem] border-2 border-transparent p-6 transition-all hover:border-maroon/30 group">
+                <div class="relative overflow-hidden rounded-[2rem] h-80 bg-gray-100 mb-6">
+                    <img src="https://ui-avatars.com/api/?name=02&background=000&color=fff&size=512" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-gray-800 text-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg">02</div>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-xl font-black text-gray-800 uppercase">Nama Calon 02</h3>
+                    <p class="text-gray-400 text-sm mt-1 mb-6 italic">"Visi: Mengutamakan Kedisiplinan dan Etika Siswa"</p>
+                    <button onclick="pilihKandidat(2, 'Nama Calon 02')" class="w-full bg-gray-100 text-gray-800 font-black py-4 rounded-2xl hover:bg-maroon hover:text-white transition-all shadow-sm">
+                        PILIH KANDIDAT
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Konfirmasi -->
+    <div id="modalConfirm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative bg-white w-full max-w-sm rounded-[2.5rem] p-10 text-center animate-in zoom-in duration-300">
+            <div class="w-20 h-20 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
+                <i class="fa-solid fa-check-double"></i>
+            </div>
+            <h3 class="text-xl font-black text-gray-800">Konfirmasi Pilihan</h3>
+            <p class="text-gray-400 text-sm mt-2 font-medium">Anda yakin ingin memilih:</p>
+            <p id="targetNama" class="text-lg font-black text-maroon mt-1 uppercase"></p>
+            
+            <div class="mt-10 flex flex-col gap-3">
+                <button onclick="kirimSuara()" id="btnKirim" class="w-full bg-maroon text-white font-black py-4 rounded-2xl shadow-xl shadow-maroon/20">KIRIM SUARA SAYA</button>
+                <button onclick="closeModal()" class="w-full py-4 text-gray-400 font-bold text-xs uppercase">Kembali</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pilihanSiswa = null;
+
+        // Ambil data dari session login
+        window.onload = () => {
+            const data = sessionStorage.getItem('pemilih_aktif');
+            if (!data) {
+                window.location.href = 'index.html'; // Tendang balik ke login jika belum verifikasi
+            } else {
+                const user = JSON.parse(data);
+                document.getElementById('displayNama').innerText = user.nama;
+            }
+        };
+
+        function pilihKandidat(no, nama) {
+            pilihanSiswa = no;
+            document.getElementById('targetNama').innerText = `Kandidat 0${no} - ${nama}`;
+            document.getElementById('modalConfirm').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalConfirm').classList.add('hidden');
+        }
+
+        function kirimSuara() {
+            const btn = document.getElementById('btnKirim');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Mengirim...';
+
+            // SIMULASI PROSES PENGIRIMAN
+            setTimeout(() => {
+                alert("Suara Anda berhasil dikirim! Terima kasih.");
+                sessionStorage.clear(); // Hapus data login
+                window.location.href = 'index.html'; // Balik ke halaman login
+            }, 2000);
+        }
+
+        function logout() {
+            if(confirm("Batal memilih?")) {
+                sessionStorage.clear();
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -3,45 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Pilketos</title>
+    <title>Bilik Suara - Pilketos</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card-paslon:hover { transform: translateY(-5px); transition: 0.3s; }
+        .success-overlay { display: none; }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border-t-8 border-[#800000]">
-        <h1 class="text-2xl font-black text-center text-[#800000] mb-6">LOGIN PEMILIH</h1>
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Nomor NISN</label>
-            <input type="number" id="nisnInput" class="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:border-[#800000]" placeholder="Contoh: 1">
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Header / Navbar -->
+    <nav class="bg-[#800000] text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div>
+                <p class="text-xs opacity-80">Pemilih Aktif:</p>
+                <p id="namaUser" class="font-bold text-lg uppercase tracking-wide"></p>
+            </div>
+            <button onclick="logout()" class="bg-white text-[#800000] px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-gray-200 transition">LOGOUT</button>
         </div>
-        <button onclick="prosesLogin()" id="btnLogin" class="w-full bg-[#800000] text-white font-bold py-3 rounded-xl hover:bg-red-900 transition-all shadow-lg">MASUK</button>
+    </nav>
+
+    <!-- Konten Utama -->
+    <div id="mainContent" class="container mx-auto px-4 py-8">
+        <h2 class="text-center text-2xl font-black text-gray-800 mb-8 tracking-tight">SILAKAN TENTUKAN PILIHAN ANDA</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Paslon 01 -->
+            <div class="card-paslon bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-transparent hover:border-[#800000]">
+                <div class="bg-gray-200 h-64 flex items-center justify-center text-gray-500 font-bold italic">FOTO PASLON 01</div>
+                <div class="p-6 text-center">
+                    <span class="bg-[#800000] text-white px-4 py-1 rounded-full text-xs font-bold">KANDIDAT 01</span>
+                    <h3 class="text-xl font-black mt-2 mb-6 text-gray-800 uppercase">Nama Calon 01</h3>
+                    <button onclick="pilih('PASLON 01', this)" class="w-full bg-[#800000] text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-900 active:scale-95 transition">PILIH SEKARANG</button>
+                </div>
+            </div>
+
+            <!-- Paslon 02 -->
+            <div class="card-paslon bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-transparent hover:border-[#800000]">
+                <div class="bg-gray-200 h-64 flex items-center justify-center text-gray-500 font-bold italic">FOTO PASLON 02</div>
+                <div class="p-6 text-center">
+                    <span class="bg-[#800000] text-white px-4 py-1 rounded-full text-xs font-bold">KANDIDAT 02</span>
+                    <h3 class="text-xl font-black mt-2 mb-6 text-gray-800 uppercase">Nama Calon 02</h3>
+                    <button onclick="pilih('PASLON 02', this)" class="w-full bg-[#800000] text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-900 active:scale-95 transition">PILIH SEKARANG</button>
+                </div>
+            </div>
+
+            <!-- Paslon 03 -->
+            <div class="card-paslon bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-transparent hover:border-[#800000]">
+                <div class="bg-gray-200 h-64 flex items-center justify-center text-gray-500 font-bold italic">FOTO PASLON 03</div>
+                <div class="p-6 text-center">
+                    <span class="bg-[#800000] text-white px-4 py-1 rounded-full text-xs font-bold">KANDIDAT 03</span>
+                    <h3 class="text-xl font-black mt-2 mb-6 text-gray-800 uppercase">Nama Calon 03</h3>
+                    <button onclick="pilih('PASLON 03', this)" class="w-full bg-[#800000] text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-900 active:scale-95 transition">PILIH SEKARANG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tampilan Terimakasih -->
+    <div id="successPage" class="success-overlay fixed inset-0 bg-white flex flex-col items-center justify-center p-6 text-center z-[100]">
+        <div class="bg-green-100 p-6 rounded-full mb-6">
+            <svg class="w-20 h-20 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <h1 class="text-3xl font-black text-gray-800 mb-2">TERIMA KASIH!</h1>
+        <p class="text-gray-600 mb-8">Suara Anda telah berhasil direkam ke sistem.<br>Silakan kembali ke kelas masing-masing.</p>
+        <button onclick="logout()" class="bg-[#800000] text-white px-10 py-4 rounded-2xl font-bold shadow-xl">KELUAR (LOGOUT)</button>
     </div>
 
     <script>
-        async function prosesLogin() {
-            const btn = document.getElementById('btnLogin');
-            const val = document.getElementById('nisnInput').value;
-            if(!val) return alert("Isi NISN dulu!");
+        const user = JSON.parse(sessionStorage.getItem('pemilih_aktif'));
+        if(!user) window.location.href = 'index.html';
+        document.getElementById('namaUser').innerText = user.nama;
 
-            btn.innerText = "Mengecek...";
+        async function pilih(namaPaslon, btn) {
+            if(!confirm("Yakin dengan pilihan Anda?")) return;
+            
+            // Link Apps Script Anda
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbwSt4l3qtpqlmy108efFMNO0kZcs0wvxh7wv9sY76yUgJ_uQ-ZpGBMZME-uZ62h6cQ7/exec';
+
+            // Efek Loading pada tombol
+            btn.innerText = "MENGIRIM...";
             btn.disabled = true;
+            btn.classList.add('opacity-50');
 
             try {
-                const response = await fetch('voters.json', { cache: "no-store" });
-                const dataSiswa = await response.json();
-                const user = dataSiswa.find(s => String(s.nisn) === String(val));
+                // Mengirim data ke Google Sheets
+                await fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        nisn: user.nisn,
+                        nama: user.nama,
+                        pilihan: namaPaslon
+                    })
+                });
 
-                if (user) {
-                    sessionStorage.setItem('pemilih_aktif', JSON.stringify(user));
-                    window.location.href = 'bilik-suara.html';
-                } else {
-                    alert("NISN tidak terdaftar!");
-                }
-            } catch (err) {
-                alert("Gagal memuat database voters.json!");
-            } finally {
-                btn.innerText = "MASUK";
+                // Menampilkan halaman Terimakasih
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('successPage').style.display = 'flex';
+                
+            } catch (e) {
+                alert("Gagal mengirim suara. Periksa internet Anda!");
+                btn.innerText = "PILIH SEKARANG";
                 btn.disabled = false;
+                btn.classList.remove('opacity-50');
             }
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
         }
     </script>
 </body>

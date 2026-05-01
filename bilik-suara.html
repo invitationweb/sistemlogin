@@ -3,113 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bilik Suara - Pilketos</title>
+    <title>Bilik Suara</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .maroon-theme { background-color: #800000; }
-        .border-maroon { border-color: #800000; }
-        .text-maroon { color: #800000; }
-    </style>
 </head>
-<body class="bg-gray-100 font-sans">
-
-    <!-- Header & Logout -->
-    <nav class="maroon-theme text-white shadow-lg p-4 sticky top-0 z-50">
+<body class="bg-gray-50 pb-10">
+    <nav class="bg-[#800000] text-white p-4 shadow-md sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="font-bold text-lg md:text-xl">PILKETOS 2026</h1>
-                <p id="namaUser" class="text-xs opacity-90">Memuat nama...</p>
-            </div>
-            <button onclick="logout()" class="bg-white text-red-900 px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-200 transition">
-                Logout
-            </button>
+            <span id="namaUser" class="font-bold uppercase tracking-tight"></span>
+            <button onclick="logout()" class="bg-white text-[#800000] px-4 py-1 rounded-lg font-bold text-sm">Logout</button>
         </div>
     </nav>
 
-    <div class="container mx-auto px-4 py-8">
-        <h2 class="text-center text-2xl font-black text-gray-800 mb-8 uppercase tracking-widest">Surat Suara Digital</h2>
-
-        <!-- Area Kartu Paslon -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
+    <div class="container mx-auto px-4 mt-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Paslon 01 -->
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-transparent hover:border-maroon transition-all group">
-                <div class="bg-gray-200 h-64 flex items-center justify-center text-gray-400 font-bold">FOTO PASLON 01</div>
-                <div class="p-6 text-center">
-                    <span class="maroon-theme text-white px-4 py-1 rounded-full text-xs font-bold">NOMOR URUT 01</span>
-                    <h3 class="mt-4 text-xl font-bold text-gray-800 uppercase">Kandidat A & B</h3>
-                    <button onclick="konfirmasiPilihan('Kandidat A & B')" class="mt-6 w-full maroon-theme text-white py-3 rounded-xl font-bold hover:opacity-90 active:scale-95 transition">PILIH SEKARANG</button>
-                </div>
+            <div class="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-4 text-center">
+                <div class="bg-gray-200 h-48 rounded-xl mb-4 flex items-center justify-center font-bold text-gray-400 uppercase">Foto Paslon 01</div>
+                <h3 class="font-black text-xl mb-4">KANDIDAT 01</h3>
+                <button onclick="pilih('PASLON 01')" class="w-full bg-[#800000] text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition">PILIH</button>
             </div>
-
             <!-- Paslon 02 -->
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-transparent hover:border-maroon transition-all group">
-                <div class="bg-gray-300 h-64 flex items-center justify-center text-gray-400 font-bold">FOTO PASLON 02</div>
-                <div class="p-6 text-center">
-                    <span class="maroon-theme text-white px-4 py-1 rounded-full text-xs font-bold">NOMOR URUT 02</span>
-                    <h3 class="mt-4 text-xl font-bold text-gray-800 uppercase">Kandidat C & D</h3>
-                    <button onclick="konfirmasiPilihan('Kandidat C & D')" class="mt-6 w-full maroon-theme text-white py-3 rounded-xl font-bold hover:opacity-90 active:scale-95 transition">PILIH SEKARANG</button>
-                </div>
+            <div class="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-4 text-center">
+                <div class="bg-gray-200 h-48 rounded-xl mb-4 flex items-center justify-center font-bold text-gray-400 uppercase">Foto Paslon 02</div>
+                <h3 class="font-black text-xl mb-4">KANDIDAT 02</h3>
+                <button onclick="pilih('PASLON 02')" class="w-full bg-[#800000] text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition">PILIH</button>
             </div>
-
             <!-- Paslon 03 -->
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-transparent hover:border-maroon transition-all group">
-                <div class="bg-gray-400 h-64 flex items-center justify-center text-gray-400 font-bold">FOTO PASLON 03</div>
-                <div class="p-6 text-center">
-                    <span class="maroon-theme text-white px-4 py-1 rounded-full text-xs font-bold">NOMOR URUT 03</span>
-                    <h3 class="mt-4 text-xl font-bold text-gray-800 uppercase">Kandidat E & F</h3>
-                    <button onclick="konfirmasiPilihan('Kandidat E & F')" class="mt-6 w-full maroon-theme text-white py-3 rounded-xl font-bold hover:opacity-90 active:scale-95 transition">PILIH SEKARANG</button>
-                </div>
+            <div class="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-4 text-center">
+                <div class="bg-gray-200 h-48 rounded-xl mb-4 flex items-center justify-center font-bold text-gray-400 uppercase">Foto Paslon 03</div>
+                <h3 class="font-black text-xl mb-4">KANDIDAT 03</h3>
+                <button onclick="pilih('PASLON 03')" class="w-full bg-[#800000] text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition">PILIH</button>
             </div>
-
         </div>
     </div>
 
     <script>
-        // Proteksi Halaman: Wajib Login
-        window.onload = () => {
-            const data = sessionStorage.getItem('pemilih_aktif');
-            if (!data) {
-                window.location.href = 'index.html'; // Tendang jika akses langsung
-            } else {
-                const user = JSON.parse(data);
-                document.getElementById('namaUser').innerText = "Pemilih: " + user.nama;
-                
-                // Cek jika user sudah pernah memilih dalam sesi ini
-                if(sessionStorage.getItem('sudah_memilih') === 'true') {
-                    tampilkanPesanSelesai();
-                }
-            }
-        };
+        const user = JSON.parse(sessionStorage.getItem('pemilih_aktif'));
+        if(!user) window.location.href = 'index.html';
+        document.getElementById('namaUser').innerText = user.nama;
 
-        function konfirmasiPilihan(namaPaslon) {
-            const yakin = confirm("Apakah Anda yakin memilih " + namaPaslon + "? Pilihan hanya bisa dilakukan satu kali.");
+        async function pilih(namaPaslon) {
+            if(!confirm("Yakin memilih " + namaPaslon + "?")) return;
             
-            if (yakin) {
-                // Tandai bahwa user sudah memilih
-                sessionStorage.setItem('sudah_memilih', 'true');
-                alert("Terima kasih! Suara Anda untuk " + namaPaslon + " telah berhasil direkam.");
-                tampilkanPesanSelesai();
+            // GANTI LINK DI BAWAH INI
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbwSt4l3qtpqlmy108efFMNO0kZcs0wvxh7wv9sY76yUgJ_uQ-ZpGBMZME-uZ62h6cQ7/exec';
+
+            try {
+                await fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ nisn: user.nisn, nama: user.nama, pilihan: namaPaslon })
+                });
+                alert("Suara Berhasil Dikirim!");
+                sessionStorage.clear();
+                window.location.href = 'index.html';
+            } catch (e) {
+                alert("Gagal mengirim suara.");
             }
         }
 
-        function tampilkanPesanSelesai() {
-            document.body.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center bg-gray-100 p-6 text-center">
-                    <div class="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full border-b-8 border-maroon">
-                        <div class="text-6xl mb-4">✅</div>
-                        <h1 class="text-2xl font-bold text-gray-800 mb-2">Pilihan Berhasil!</h1>
-                        <p class="text-gray-600 mb-8">Terima kasih telah berpartisipasi dalam Pilketos 2026. Silakan tinggalkan bilik suara.</p>
-                        <button onclick="logout()" class="maroon-theme text-white px-8 py-3 rounded-full font-bold shadow-lg">KELUAR</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function logout() {
-            sessionStorage.clear(); // Hapus semua data sesi
-            window.location.href = 'index.html';
-        }
+        function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>

@@ -411,4 +411,1118 @@ function doLogout() {
 // ============================================================
 (async function initApp() {
   try {
-    const raw = localStorage.getItem("pettyCashSess
+    const raw = localStorage.getItem("pettyCashSession");
+    
+    // SELALU fetch data dari server saat halaman login dimuat
+    if (GAS_URL && !GAS_URL.includes("XXXXXX")) {
+      console.log("🔄 Fetching data dari server...");
+      const res = await callServer("getData");
+      if (res.success) {
+        state = res.data;
+        saveState();
+        console.log("✅ Data ter-load:", state.users.length, "users,", state.pengajuan.length, "pengajuan");
+      } else {
+        console.warn("⚠️ Gagal fetch:", res.message);
+      }
+    }
+    
+    // Restore session kalau ada
+    if (raw) {
+      const sess = JSON.parse(raw);
+      const found = state.users.find(u => u.id === sess.id);
+      if (found) { 
+        currentUser = found; 
+        startApp(); 
+      }
+    }
+  } catch(e) {
+    console.error("Init error:", e);
+  }
+})();
+
+// ============================================================
+// SIDEBAR & BOTTOM NAV
+// ============================================================
+function buildSidebar() {
+  const sb = document.getElementById("sidebar");
+  if (currentUser.role === "staf") {
+    sb.innerHTML = `
+      <a onclick="renderPengajuan()" id="mn-pengajuan">📋 Pengajuan</a>
+      <a onclick="renderRiwayat()"   id="mn-riwayat">📜 Riwayat</a>
+      <a onclick="syncFromServer()"  style="color:#27ae60;">🔄 Sync</a>`;
+  } else {
+    sb.innerHTML = `
+      <a onclick="renderDashboardAdmin()" id="mn-dashboard">🏠 Dashboard</a>
+      <a onclick="renderApprovePage()"    id="mn-approve">✅ Pengajuan</a>
+      <a onclick="renderKategori()"       id="mn-kat">🏷️ Kategori</a>
+      <a onclick="renderToko()"           id="mn-toko">🏪 Toko</a>
+      <a onclick="renderModal()"          id="mn-modal">💵 Modal</a>
+      <a onclick="renderKaryawan()"       id="mn-kar">👥 Karyawan</a>
+      <hr style="margin:10px 20px;border:none;border-top:1px solid #eee;">
+      <a onclick="syncFromServer()" style="color:#27ae60;">🔄 Sync</a>
+      <a onclick="setupServer()" style="color:#e67e22;">⚙️ Setup</a>`;
+  }
+}
+
+function buildBottomNav() {
+  const bn = document.getElementById("bottomNav");
+  if (currentUser.role === "staf") {
+    bn.innerHTML = `<div class="bottom-nav-inner">
+      <a onclick="renderPengajuan()" id="bn-pengajuan"><span class="icon">📋</span>Pengajuan</a>
+      <a onclick="renderRiwayat()"   id="bn-riwayat"><span class="icon">📜</span>Riwayat</a>
+      <a onclick="syncFromServer()"><span class="icon">🔄</span>Sync</a>
+    </div>`;
+  } else {
+    bn.innerHTML = `<div class="bottom-nav-inner">
+      <a onclick="renderDashboardAdmin()" id="bn-dashboard"><span class="icon">🏠</span>Home</a>
+      <a onclick="renderApprovePage()"    id="bn-approve"><span class="icon">✅</span>Pengajuan</a>
+      <a onclick="renderKaryawan()"       id="bn-kar"><span class="icon">👥</span>User</a>
+      <a onclick="syncFromServer()"><span class="icon">🔄</span>Sync</a>
+    </div>`;
+  }
+}
+
+function setActive(id) {
+  document.querySelectorAll(".sidebar a, .bottom-nav a").forEach(a=>a.classList.remove("active"));
+  const el = document.getElementById(id);
+  const bnId = id.replace("mn-","bn-");
+  const bn = document.getElementById(bnId);
+  if (el) el.classList.add("active");
+  if (bn) bn.classList.add("active");
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(html) {
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modalOverlay").classList.remove("hidden");
+}
+function closeModal() { document.getElementById("modalOverlay").classList.add("hidden"); }
+document.addEventListener("click", e => { if (e.target.id==="modalOverlay") closeModal(); });
+
+// ============================================================
+// STAF - FORM PENGAJUAN
+// ============================================================
+let draftItems = [];
+
+function renderPengajuan() {
+  setActive("mn-pengajuan");
+  draftItems = [{ namaBarang:"", kategori: state.categories[0]||"", keterangan:"", jumlah:"", foto:"" }];
+  buildPengajuanPage();
+}
+
+function buildPengajuanPage() {
+  const tokoOpts = state.toko.map(t=>`<option ${t===currentUser.toko?'selected':''}>${t}</option>`).join("");
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card">
+    <h3>📋 Form Pengajuan Bon</h3>
+    <div class="form-row" style="margin-bottom:14px;">
+      <div class="form-group"><label>Tanggal</label><input type="date" id="fTgl" value="${today()}"></div>
+      <div class="form-group"><label>Pengaju</label><input type="text" value="${currentUser.nama}" readonly></div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label>Asal Toko</label>
+      <select id="fToko" style="max-width:300px;">${tokoOpts}</select>
+    </div>
+    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">Daftar Item</label>
+    <div style="overflow-x:auto;">
+      <table class="item-table">
+        <thead><tr>
+          <th style="width:25%">Nama Barang</th>
+          <th style="width:16%">Kategori</th>
+          <th style="width:22%">Keterangan</th>
+          <th style="width:15%">Jumlah</th>
+          <th style="width:15%">Foto</th>
+          <th style="width:7%"></th>
+        </tr></thead>
+        <tbody id="itemBody"></tbody>
+      </table>
+    </div>
+    <div class="total-bar">Total: <span id="grandTotal">Rp 0</span></div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="background:#eee;color:#333;" onclick="addItemRow()">+ Tambah Item</button>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="submitPengajuan()">📤 Kirim Pengajuan</button>
+      <button class="btn" style="background:#eee;color:#333;" onclick="renderPengajuan()">Reset</button>
+    </div>
+  </div>`;
+  renderItemRows();
+}
+
+function catOptions(selected) {
+  return state.categories.map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join("");
+}
+
+function renderItemRows() {
+  const tbody = document.getElementById("itemBody");
+  if (!tbody) return;
+  tbody.innerHTML = draftItems.map((item, i) => `
+    <tr>
+      <td><input type="text" value="${item.namaBarang}" oninput="draftItems[${i}].namaBarang=this.value" placeholder="Nama barang"></td>
+      <td><select onchange="draftItems[${i}].kategori=this.value">${catOptions(item.kategori)}</select></td>
+      <td><input type="text" value="${item.keterangan}" oninput="draftItems[${i}].keterangan=this.value" placeholder="Keterangan"></td>
+      <td><input type="number" value="${item.jumlah}" oninput="draftItems[${i}].jumlah=this.value;updateGrandTotal()" placeholder="0" min="0"></td>
+      <td>${item.foto
+          ? `<img class="bon-thumb" src="${item.foto}" onclick="viewImg('${item.foto}')"><br>
+             <small style="cursor:pointer;color:#e74c3c;" onclick="draftItems[${i}].foto='';renderItemRows()">Hapus</small>`
+          : `<input type="file" accept="image/*" capture="environment" style="font-size:11px;" onchange="readFoto(${i},this)">`}</td>
+      <td>${draftItems.length>1 ? `<button class="btn btn-danger btn-sm" onclick="removeItemRow(${i})">✕</button>` : ""}</td>
+    </tr>`).join("");
+  updateGrandTotal();
+}
+
+function addItemRow() {
+  draftItems.push({ namaBarang:"", kategori: state.categories[0]||"", keterangan:"", jumlah:"", foto:"" });
+  renderItemRows();
+}
+function removeItemRow(i) { draftItems.splice(i,1); renderItemRows(); }
+function readFoto(i, input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => { draftItems[i].foto = e.target.result; renderItemRows(); };
+  reader.readAsDataURL(input.files[0]);
+}
+function updateGrandTotal() {
+  const total = draftItems.reduce((s,item)=>s+(parseInt(item.jumlah)||0),0);
+  const el = document.getElementById("grandTotal");
+  if (el) el.textContent = fmtRp(total);
+}
+
+async function submitPengajuan() {
+  const tgl  = document.getElementById("fTgl").value;
+  const toko = document.getElementById("fToko").value;
+  if (!tgl) { toast("Isi tanggal.","error"); return; }
+  const validItems = draftItems.filter(i=>i.namaBarang.trim() && (parseInt(i.jumlah)||0)>0);
+  if (validItems.length===0) { toast("Minimal 1 item.","error"); return; }
+  const totalJumlah = calcTotal(validItems);
+  const newRow = {
+    id: state.nextId++, tanggal: tgl, pengaju: currentUser.nama, toko,
+    items: validItems.map(i=>({...i, jumlah: parseInt(i.jumlah)||0})),
+    totalJumlah, status: "pending", catatan: ""
+  };
+  state.pengajuan.push(newRow);
+  saveState();
+  showLoading("Mengirim & notifikasi admin...");
+  const res = await callServer("insert", newRow);
+  hideLoading();
+  if (res.success && res.items) { newRow.items = res.items; saveState(); }
+  else if (!res.success) toast("Tersimpan lokal. Server: " + res.message, "error");
+  else toast("✅ Pengajuan terkirim! Email notifikasi dikirim ke admin.");
+  renderPengajuan();
+}
+
+// ============================================================
+// STAF - RIWAYAT
+// ============================================================
+let riwayatFilter = { from:"", to:"", stat:"", search:"" };
+
+function renderRiwayat() {
+  setActive("mn-riwayat");
+  buildRiwayatPage();
+}
+
+function buildRiwayatPage() {
+  let data = state.pengajuan.filter(p=>p.pengaju===currentUser.nama);
+  if (riwayatFilter.from) data = data.filter(r=>r.tanggal>=riwayatFilter.from);
+  if (riwayatFilter.to)   data = data.filter(r=>r.tanggal<=riwayatFilter.to);
+  if (riwayatFilter.stat) data = data.filter(r=>r.status===riwayatFilter.stat);
+  if (riwayatFilter.search) {
+    const q = riwayatFilter.search.toLowerCase();
+    data = data.filter(r =>
+      r.items.some(it => it.namaBarang.toLowerCase().includes(q) || (it.keterangan||'').toLowerCase().includes(q)) ||
+      r.toko.toLowerCase().includes(q)
+    );
+  }
+
+  const grandTotal = data.reduce((s,r)=>s+r.totalJumlah,0);
+
+  const tableRows = data.length===0
+    ? `<tr><td colspan="8" style="text-align:center;color:#aaa;padding:20px;">Tidak ada data</td></tr>`
+    : data.map(r => {
+        const itemList = r.items.map(it=>`<div>• ${it.namaBarang} — ${fmtRp(it.jumlah)}</div>`).join("");
+        const canEdit  = r.status === "pending";
+        return `<tr>
+          <td>${fmtDate(r.tanggal)}</td>
+          <td>${r.toko}</td>
+          <td>${itemList}</td>
+          <td style="font-weight:600;">${fmtRp(r.totalJumlah)}</td>
+          <td>${r.items.map(it=>it.foto?`<img class="bon-thumb" src="${it.foto}" onclick="viewImg('${it.foto}')">`:"-").join(" ")}</td>
+          <td><span class="badge badge-${r.status}">${r.status}</span>${r.approvedBy?`<br><small>oleh ${r.approvedBy}</small>`:""}</td>
+          <td>${r.catatan||"-"}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-sm" style="background:#eee;color:#333;" onclick="cetakSatuPengajuan(${r.id})">🖨️</button>
+            ${canEdit?`<button class="btn btn-warning btn-sm" onclick="editPengajuanStaf(${r.id})">✏️</button>`:""}
+          </td>
+        </tr>`;
+      }).join("");
+
+  const mobileCards = data.length===0
+    ? `<div style="text-align:center;color:#aaa;padding:20px;">Tidak ada data</div>`
+    : data.map(r => {
+        const canEdit = r.status === "pending";
+        return `<div class="m-card">
+          <div class="m-card-header">
+            <div>
+              <div class="m-card-title">${fmtDate(r.tanggal)} • ${r.toko}</div>
+              <div class="m-card-sub">${r.items.length} item</div>
+            </div>
+            <span class="badge badge-${r.status}">${r.status}</span>
+          </div>
+          <div class="m-card-row"><span class="lbl">Total</span><b style="color:#667eea;">${fmtRp(r.totalJumlah)}</b></div>
+          <div class="m-card-row"><span class="lbl">Item</span><span>${r.items.map(it=>it.namaBarang).join(", ")}</span></div>
+          ${r.catatan?`<div class="m-card-row"><span class="lbl">Catatan</span><span>${r.catatan}</span></div>`:""}
+          <div class="m-card-actions">
+            <button class="btn btn-sm" style="background:#eee;color:#333;" onclick="cetakSatuPengajuan(${r.id})">🖨️ PDF</button>
+            ${canEdit?`<button class="btn btn-warning btn-sm" onclick="editPengajuanStaf(${r.id})">✏️ Edit</button>`:""}
+          </div>
+        </div>`;
+      }).join("");
+
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card">
+    <h3>📜 Riwayat Pengajuan</h3>
+    <div class="filter-row">
+      <div class="search-box"><input type="text" placeholder="Cari barang/toko..." value="${riwayatFilter.search}" oninput="riwayatFilter.search=this.value;buildRiwayatPage()"></div>
+      <input type="date" value="${riwayatFilter.from}" onchange="riwayatFilter.from=this.value;buildRiwayatPage()">
+      <input type="date" value="${riwayatFilter.to}" onchange="riwayatFilter.to=this.value;buildRiwayatPage()">
+      <select onchange="riwayatFilter.stat=this.value;buildRiwayatPage()">
+        <option value="">Semua Status</option>
+        <option ${riwayatFilter.stat==='pending'?'selected':''}>pending</option>
+        <option ${riwayatFilter.stat==='approved'?'selected':''}>approved</option>
+        <option ${riwayatFilter.stat==='rejected'?'selected':''}>rejected</option>
+      </select>
+      <button class="btn btn-sm" style="background:#eee;color:#333;" onclick="resetRiwayatFilter()">Reset</button>
+      <button class="btn btn-success btn-sm" onclick="cetakPDFStaf()">🖨️ PDF</button>
+    </div>
+    <div class="desktop-table">
+      <table>
+        <thead><tr><th>Tanggal</th><th>Toko</th><th>Item</th><th>Total</th><th>Bon</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot><tr><td colspan="3" style="font-weight:600;text-align:right;">Grand Total</td><td colspan="5" style="font-weight:700;color:#667eea;">${fmtRp(grandTotal)}</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="mobile-card">${mobileCards}</div>
+  </div>`;
+}
+
+function resetRiwayatFilter() {
+  riwayatFilter = { from:"", to:"", stat:"", search:"" };
+  buildRiwayatPage();
+}
+
+function viewImg(src) {
+  openModal(`<div style="text-align:center;">
+    <h3 style="margin-bottom:12px;">Foto Bon</h3>
+    <img src="${src}" style="max-width:100%;border-radius:8px;">
+    <div style="margin-top:16px;"><button class="btn btn-sm" onclick="closeModal()">Tutup</button></div>
+  </div>`);
+}
+
+// ============================================================
+// CETAK PDF
+// ============================================================
+function cetakSatuPengajuan(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16); doc.setFont(undefined,"bold");
+  doc.text("BUKTI PENGAJUAN PETTY CASH", 105, 18, { align:"center" });
+  doc.setFontSize(10); doc.setFont(undefined,"normal");
+  doc.text("Dicetak: " + new Date().toLocaleString("id-ID"), 105, 25, { align:"center" });
+  let y = 34;
+  const addInfo = (label, val) => {
+    doc.setFont(undefined,"bold");   doc.text(label, 14, y);
+    doc.setFont(undefined,"normal"); doc.text(": " + val, 55, y);
+    y += 7;
+  };
+  addInfo("No. Pengajuan", "#" + r.id);
+  addInfo("Tanggal",       fmtDate(r.tanggal));
+  addInfo("Pengaju",       r.pengaju);
+  addInfo("Asal Toko",     r.toko);
+  addInfo("Status",        r.status.toUpperCase());
+  if (r.approvedBy) addInfo("Diproses oleh", r.approvedBy);
+  if (r.catatan)    addInfo("Catatan",        r.catatan);
+  y += 3;
+  doc.autoTable({
+    startY: y,
+    head: [["No","Nama Barang","Kategori","Keterangan","Jumlah (Rp)"]],
+    body: r.items.map((it,i) => [i+1, it.namaBarang, it.kategori, it.keterangan||"-", Number(it.jumlah).toLocaleString("id-ID")]),
+    foot: [["","","","Total", Number(r.totalJumlah).toLocaleString("id-ID")]],
+    styles: { fontSize:10 }, headStyles: { fillColor:[102,126,234] },
+    footStyles: { fillColor:[240,240,240], fontStyle:"bold" }, columnStyles: { 4: { halign:"right" } }
+  });
+  const finalY = doc.lastAutoTable.finalY + 16;
+  doc.setFontSize(10);
+  doc.text("Pengaju,", 30, finalY, { align:"center" });
+  doc.text("Mengetahui,", 105, finalY, { align:"center" });
+  doc.text("Admin,", 175, finalY, { align:"center" });
+  doc.text("( " + r.pengaju + " )", 30, finalY + 20, { align:"center" });
+  doc.text("( " + (r.approvedBy || "..................") + " )", 105, finalY + 20, { align:"center" });
+  doc.save("pengajuan-" + r.id + ".pdf");
+}
+
+function cetakPDFStaf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16); doc.text("Laporan Petty Cash - " + currentUser.nama, 14, 18);
+  doc.setFontSize(10); doc.text("Dicetak: " + new Date().toLocaleString("id-ID"), 14, 26);
+  const rows = state.pengajuan.filter(p=>p.pengaju===currentUser.nama).map(r => [
+    fmtDate(r.tanggal), r.toko, r.items.map(it=>it.namaBarang).join(", "), fmtRp(r.totalJumlah), r.status
+  ]);
+  doc.autoTable({
+    startY: 32, head: [["Tanggal","Toko","Item","Total","Status"]],
+    body: rows, styles:{ fontSize:9 }, headStyles:{ fillColor:[102,126,234] }
+  });
+  doc.save("laporan-" + currentUser.nama.replace(/\s/g,"_") + ".pdf");
+}
+
+// ============================================================
+// STAF - EDIT
+// ============================================================
+let editStafDraftItems = [];
+
+function editPengajuanStaf(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r || r.status !== "pending") { toast("Tidak bisa diedit.","error"); return; }
+  editStafDraftItems = r.items.map(i=>({...i}));
+  const tokoOpts = state.toko.map(t=>`<option ${t===r.toko?'selected':''}>${t}</option>`).join("");
+  openModal(`
+  <h3>✏️ Edit Pengajuan #${r.id}</h3>
+  <div class="form-row" style="margin-bottom:12px;">
+    <div class="form-group"><label>Tanggal</label><input type="date" id="esTgl" value="${r.tanggal}"></div>
+    <div class="form-group"><label>Toko</label><select id="esToko">${tokoOpts}</select></div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="item-table">
+      <thead><tr><th>Nama</th><th>Kategori</th><th>Keterangan</th><th>Jumlah</th><th>Foto</th><th></th></tr></thead>
+      <tbody id="esItemBody"></tbody>
+    </table>
+  </div>
+  <div class="total-bar" style="margin-top:8px;">Total: <span id="esGrandTotal">Rp 0</span></div>
+  <div style="margin-top:8px;"><button class="btn btn-sm" style="background:#eee;color:#333;" onclick="addEsItemRow()">+ Tambah</button></div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" onclick="saveEditPengajuanStaf(${id})">Simpan</button>
+    <button class="btn" style="background:#eee;color:#333;" onclick="closeModal()">Batal</button>
+  </div>`);
+  renderEsItemRows();
+}
+
+function renderEsItemRows() {
+  const tbody = document.getElementById("esItemBody");
+  if (!tbody) return;
+  tbody.innerHTML = editStafDraftItems.map((item,i)=>`
+    <tr>
+      <td><input type="text" value="${item.namaBarang}" oninput="editStafDraftItems[${i}].namaBarang=this.value"></td>
+      <td><select onchange="editStafDraftItems[${i}].kategori=this.value">${catOptions(item.kategori)}</select></td>
+      <td><input type="text" value="${item.keterangan||''}" oninput="editStafDraftItems[${i}].keterangan=this.value"></td>
+      <td><input type="number" value="${item.jumlah}" oninput="editStafDraftItems[${i}].jumlah=this.value;updateEsTotal()" min="0"></td>
+      <td>${item.foto
+        ? `<img class="bon-thumb" src="${item.foto}"><br><small style="cursor:pointer;color:#e74c3c;" onclick="editStafDraftItems[${i}].foto='';renderEsItemRows()">Hapus</small>`
+        : `<input type="file" accept="image/*" capture="environment" style="font-size:11px;" onchange="readEsFoto(${i},this)">`}</td>
+      <td>${editStafDraftItems.length>1?`<button class="btn btn-danger btn-sm" onclick="removeEsItemRow(${i})">✕</button>`:""}</td>
+    </tr>`).join("");
+  updateEsTotal();
+}
+
+function addEsItemRow() { editStafDraftItems.push({ namaBarang:"", kategori:state.categories[0]||"", keterangan:"", jumlah:0, foto:"" }); renderEsItemRows(); }
+function removeEsItemRow(i) { editStafDraftItems.splice(i,1); renderEsItemRows(); }
+function updateEsTotal() {
+  const total = editStafDraftItems.reduce((s,i)=>s+(parseInt(i.jumlah)||0),0);
+  const el = document.getElementById("esGrandTotal");
+  if (el) el.textContent = fmtRp(total);
+}
+function readEsFoto(i, input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => { editStafDraftItems[i].foto = e.target.result; renderEsItemRows(); };
+  reader.readAsDataURL(input.files[0]);
+}
+async function saveEditPengajuanStaf(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  r.tanggal = document.getElementById("esTgl").value;
+  r.toko    = document.getElementById("esToko").value;
+  r.items   = editStafDraftItems.map(i=>({...i, jumlah:parseInt(i.jumlah)||0}));
+  r.totalJumlah = calcTotal(r.items);
+  saveState();
+  showLoading("Menyimpan...");
+  const res = await callServer("update", r);
+  hideLoading();
+  if (res.success && res.items) { r.items = res.items; saveState(); }
+  closeModal();
+  toast("✅ Tersimpan");
+  renderRiwayat();
+}
+
+// ============================================================
+// ADMIN - DASHBOARD + CHART
+// ============================================================
+let chartInstances = {};
+
+function renderDashboardAdmin() {
+  setActive("mn-dashboard");
+  const totalSemua = state.pengajuan.reduce((s,r)=>s+r.totalJumlah,0);
+  const approved   = state.pengajuan.filter(r=>r.status==="approved").reduce((s,r)=>s+r.totalJumlah,0);
+  const pending    = state.pengajuan.filter(r=>r.status==="pending").length;
+  const rejected   = state.pengajuan.filter(r=>r.status==="rejected").length;
+  const sisa       = state.modal - approved;
+
+  const gasStatus = (!GAS_URL || GAS_URL.includes("XXXXXX"))
+    ? `<span style="color:#fff;opacity:0.9;">❌ Belum dikonfigurasi</span>`
+    : `<span style="color:#fff;opacity:0.9;">✅ Terhubung</span>`;
+
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;">
+    <h3 style="color:#fff;border:none;">☁️ Status Server</h3>
+    <p style="font-size:13px;opacity:0.95;margin-bottom:10px;">${gasStatus}</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff;" onclick="syncFromServer()">🔄 Sync</button>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff;" onclick="setupServer()">⚙️ Setup</button>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card"><div class="num">${fmtRp(state.modal)}</div><div class="label">Total Modal</div></div>
+    <div class="summary-card"><div class="num" style="color:#27ae60;">${fmtRp(approved)}</div><div class="label">Disetujui</div></div>
+    <div class="summary-card"><div class="num" style="color:#667eea;">${fmtRp(sisa)}</div><div class="label">Sisa Kas</div></div>
+  </div>
+  <div class="summary-grid">
+    <div class="summary-card"><div class="num">${state.pengajuan.length}</div><div class="label">Total Pengajuan</div></div>
+    <div class="summary-card"><div class="num" style="color:#f39c12;">${pending}</div><div class="label">Pending</div></div>
+    <div class="summary-card"><div class="num" style="color:#e74c3c;">${rejected}</div><div class="label">Ditolak</div></div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h4>📊 Pengeluaran per Kategori</h4>
+      <div class="chart-container"><canvas id="chartKategori"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h4>🏪 Pengeluaran per Toko</h4>
+      <div class="chart-container"><canvas id="chartToko"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-grid" style="grid-template-columns:1fr;">
+    <div class="chart-card">
+      <h4>📈 Tren Pengajuan (30 Hari Terakhir)</h4>
+      <div class="chart-container"><canvas id="chartTren"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Pengajuan Terbaru</h3>
+    <div class="desktop-table">
+      <table>
+        <thead><tr><th>Tanggal</th><th>Pengaju</th><th>Toko</th><th>Item</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>${[...state.pengajuan].reverse().slice(0,5).map(r=>`
+          <tr><td>${fmtDate(r.tanggal)}</td><td>${r.pengaju}</td><td>${r.toko}</td>
+          <td>${r.items.length} item</td><td>${fmtRp(r.totalJumlah)}</td>
+          <td><span class="badge badge-${r.status}">${r.status}</span></td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  setTimeout(renderCharts, 100);
+}
+
+function renderCharts() {
+  Object.values(chartInstances).forEach(c => c && c.destroy());
+  chartInstances = {};
+
+  const approved = state.pengajuan.filter(r=>r.status==="approved");
+  
+  const byKat = {};
+  approved.forEach(r => r.items.forEach(it => {
+    byKat[it.kategori] = (byKat[it.kategori]||0) + Number(it.jumlah);
+  }));
+  const katLabels = Object.keys(byKat);
+  const katData = Object.values(byKat);
+  
+  const ctx1 = document.getElementById("chartKategori");
+  if (ctx1 && katLabels.length) {
+    chartInstances.kat = new Chart(ctx1, {
+      type: 'doughnut',
+      data: {
+        labels: katLabels,
+        datasets: [{ data: katData, backgroundColor: ['#667eea','#f39c12','#27ae60','#e74c3c','#3498db','#9b59b6','#1abc9c','#e67e22'] }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{font:{size:11}} } } }
+    });
+  }
+
+  const byToko = {};
+  approved.forEach(r => { byToko[r.toko] = (byToko[r.toko]||0) + r.totalJumlah; });
+  const ctx2 = document.getElementById("chartToko");
+  if (ctx2 && Object.keys(byToko).length) {
+    chartInstances.toko = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(byToko),
+        datasets: [{ label:'Total (Rp)', data:Object.values(byToko), backgroundColor:'#667eea', borderRadius:6 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp'+(v/1000)+'k' } } } }
+    });
+  }
+
+  const todayDate = new Date();
+  const byDate = {};
+  for (let i=29; i>=0; i--) {
+    const d = new Date(todayDate); d.setDate(d.getDate()-i);
+    const key = d.toISOString().split("T")[0];
+    byDate[key] = 0;
+  }
+  state.pengajuan.forEach(r => { if (byDate[r.tanggal] !== undefined) byDate[r.tanggal] += r.totalJumlah; });
+  const ctx3 = document.getElementById("chartTren");
+  if (ctx3) {
+    chartInstances.tren = new Chart(ctx3, {
+      type: 'line',
+      data: {
+        labels: Object.keys(byDate).map(d => d.slice(5)),
+        datasets: [{ label:'Pengajuan (Rp)', data:Object.values(byDate), borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.1)', fill:true, tension:0.3, borderWidth:2 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp'+(v/1000)+'k' } } } }
+    });
+  }
+}
+
+// ============================================================
+// ADMIN - APPROVE PAGE
+// ============================================================
+let approveFilter = { from:"", to:"", stat:"", toko:"", search:"" };
+
+function renderApprovePage() {
+  setActive("mn-approve");
+  buildApprovePage();
+}
+
+function buildApprovePage() {
+  let data = [...state.pengajuan];
+  if (approveFilter.from)  data = data.filter(r=>r.tanggal>=approveFilter.from);
+  if (approveFilter.to)    data = data.filter(r=>r.tanggal<=approveFilter.to);
+  if (approveFilter.stat)  data = data.filter(r=>r.status===approveFilter.stat);
+  if (approveFilter.toko)  data = data.filter(r=>r.toko===approveFilter.toko);
+  if (approveFilter.search) {
+    const q = approveFilter.search.toLowerCase();
+    data = data.filter(r =>
+      r.pengaju.toLowerCase().includes(q) ||
+      r.items.some(it => it.namaBarang.toLowerCase().includes(q))
+    );
+  }
+
+  const grandTotal = data.reduce((s,r)=>s+r.totalJumlah,0);
+
+  const tableRows = data.length===0
+    ? `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:20px;">Tidak ada data</td></tr>`
+    : data.map(r => {
+        const itemList = r.items.map(it=>`<div>• ${it.namaBarang} — ${fmtRp(it.jumlah)}</div>`).join("");
+        const bonList  = r.items.map(it=>it.foto?`<img class="bon-thumb" src="${it.foto}" onclick="viewImg('${it.foto}')">`:"-").join(" ");
+        return `<tr>
+          <td>${fmtDate(r.tanggal)}</td>
+          <td>${r.pengaju}<br><small style="color:#888;">${r.toko}</small></td>
+          <td>${itemList}</td>
+          <td style="font-weight:600;white-space:nowrap;">${fmtRp(r.totalJumlah)}</td>
+          <td>${bonList}</td>
+          <td>
+            <span class="badge badge-${r.status}">${r.status}</span>
+            ${r.approvedBy ? `<br><small>oleh ${r.approvedBy}</small>` : ""}
+            ${r.catatan ? `<br><small style="color:#888;">${r.catatan}</small>` : ""}
+          </td>
+          <td style="white-space:nowrap;">
+            ${r.status==="pending" ? `
+              <button class="btn btn-success btn-sm" onclick="approveRow(${r.id})">✔</button>
+              <button class="btn btn-danger btn-sm" onclick="rejectRow(${r.id})">✘</button>` : ""}
+            <button class="btn btn-wa btn-sm" onclick="kirimWA(${r.id})" title="Kirim ke WA">💬</button>
+            <button class="btn btn-warning btn-sm" onclick="editPengajuan(${r.id})">✏️</button>
+            <button class="btn btn-sm" style="background:#eee;color:#333;" onclick="cetakSatuPengajuan(${r.id})">🖨️</button>
+          </td>
+        </tr>`;
+      }).join("");
+
+  const mobileCards = data.length===0
+    ? `<div style="text-align:center;color:#aaa;padding:20px;">Tidak ada data</div>`
+    : data.map(r => `<div class="m-card">
+      <div class="m-card-header">
+        <div>
+          <div class="m-card-title">${r.pengaju}</div>
+          <div class="m-card-sub">${fmtDate(r.tanggal)} • ${r.toko}</div>
+        </div>
+        <span class="badge badge-${r.status}">${r.status}</span>
+      </div>
+      <div class="m-card-row"><span class="lbl">Total</span><b style="color:#667eea;">${fmtRp(r.totalJumlah)}</b></div>
+      <div class="m-card-row"><span class="lbl">Item</span><span>${r.items.length} barang</span></div>
+      <div class="m-card-actions">
+        ${r.status==="pending" ? `
+          <button class="btn btn-success btn-sm" onclick="approveRow(${r.id})">✔ Setuju</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectRow(${r.id})">✘ Tolak</button>` : ""}
+        <button class="btn btn-wa btn-sm" onclick="kirimWA(${r.id})">💬 WA</button>
+        <button class="btn btn-sm" style="background:#eee;color:#333;" onclick="cetakSatuPengajuan(${r.id})">🖨️</button>
+      </div>
+    </div>`).join("");
+
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card">
+    <h3>✅ Manajemen Pengajuan</h3>
+    <div class="filter-row">
+      <div class="search-box"><input type="text" placeholder="Cari pengaju/barang..." value="${approveFilter.search}" oninput="approveFilter.search=this.value;buildApprovePage()"></div>
+      <input type="date" value="${approveFilter.from}" onchange="approveFilter.from=this.value;buildApprovePage()">
+      <input type="date" value="${approveFilter.to}" onchange="approveFilter.to=this.value;buildApprovePage()">
+      <select onchange="approveFilter.stat=this.value;buildApprovePage()">
+        <option value="">Semua Status</option>
+        <option ${approveFilter.stat==='pending'?'selected':''}>pending</option>
+        <option ${approveFilter.stat==='approved'?'selected':''}>approved</option>
+        <option ${approveFilter.stat==='rejected'?'selected':''}>rejected</option>
+      </select>
+      <select onchange="approveFilter.toko=this.value;buildApprovePage()">
+        <option value="">Semua Toko</option>
+        ${state.toko.map(t=>`<option ${approveFilter.toko===t?'selected':''}>${t}</option>`).join("")}
+      </select>
+      <button class="btn btn-sm" style="background:#eee;color:#333;" onclick="approveFilter={from:'',to:'',stat:'',toko:'',search:''};buildApprovePage()">Reset</button>
+      <button class="btn btn-success btn-sm" onclick="cetakPDFAdmin()">🖨️ PDF</button>
+    </div>
+    <div class="desktop-table">
+      <table>
+        <thead><tr><th>Tgl</th><th>Pengaju</th><th>Item</th><th>Total</th><th>Bon</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot><tr><td colspan="3" style="font-weight:600;text-align:right;">Grand Total</td><td colspan="4" style="font-weight:700;color:#667eea;">${fmtRp(grandTotal)}</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="mobile-card">${mobileCards}</div>
+  </div>`;
+}
+
+async function approveRow(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  r.status = "approved";
+  r.approvedBy = currentUser.nama;
+  r.approvedAt = today();
+  saveState();
+  showLoading("Menyimpan & kirim email...");
+  await callServer("update", r);
+  hideLoading();
+  toast("✅ Disetujui. Email notifikasi terkirim.");
+  buildApprovePage();
+}
+
+async function rejectRow(id) {
+  const cat = prompt("Alasan penolakan:");
+  if (cat===null) return;
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  r.status = "rejected";
+  r.catatan = cat||"";
+  r.approvedBy = currentUser.nama;
+  r.approvedAt = today();
+  saveState();
+  showLoading("Menyimpan & kirim email...");
+  await callServer("update", r);
+  hideLoading();
+  toast("❌ Ditolak. Email notifikasi terkirim.");
+  buildApprovePage();
+}
+
+// ============================================================
+// WHATSAPP
+// ============================================================
+function kirimWA(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  const admins = state.users.filter(u => u.role === 'admin' && u.noWa && u.id !== currentUser.id);
+  if (admins.length === 0) { toast("Tidak ada nomor WA admin.","error"); return; }
+  const itemList = r.items.map(it => `• ${it.namaBarang} (${it.kategori}) - ${fmtRp(it.jumlah)}`).join("\n");
+  const msg = `*🔔 PENGAJUAN PETTY CASH*\n\n` +
+              `No: #${r.id}\n` +
+              `Tgl: ${fmtDate(r.tanggal)}\n` +
+              `Pengaju: ${r.pengaju}\n` +
+              `Toko: ${r.toko}\n` +
+              `Total: *${fmtRp(r.totalJumlah)}*\n\n` +
+              `*Detail Item:*\n${itemList}\n\n` +
+              `Mohon segera diproses. Terima kasih.`;
+  if (admins.length === 1) {
+    window.open(`https://wa.me/${admins[0].noWa}?text=${encodeURIComponent(msg)}`, '_blank');
+  } else {
+    const choices = admins.map((a,i) => `${i+1}. ${a.nama} (${a.noWa})`).join("\n");
+    const pick = prompt(`Pilih admin tujuan:\n${choices}\n\nNomor (1-${admins.length}):`);
+    const idx = parseInt(pick) - 1;
+    if (idx >= 0 && idx < admins.length) {
+      window.open(`https://wa.me/${admins[idx].noWa}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+  }
+}
+
+// ============================================================
+// ADMIN - EDIT PENGAJUAN
+// ============================================================
+let editDraftItems = [];
+
+function editPengajuan(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  editDraftItems = r.items.map(i=>({...i}));
+  const tokoOpts = state.toko.map(t=>`<option ${t===r.toko?'selected':''}>${t}</option>`).join("");
+  openModal(`
+  <h3>✏️ Edit Pengajuan #${r.id}</h3>
+  <div class="form-row" style="margin-bottom:12px;">
+    <div class="form-group"><label>Tanggal</label><input type="date" id="eTgl" value="${r.tanggal}"></div>
+    <div class="form-group"><label>Toko</label><select id="eToko">${tokoOpts}</select></div>
+  </div>
+  <div class="form-row" style="margin-bottom:12px;">
+    <div class="form-group"><label>Status</label>
+      <select id="eStat">
+        <option ${r.status==='pending'?'selected':''} value="pending">pending</option>
+        <option ${r.status==='approved'?'selected':''} value="approved">approved</option>
+        <option ${r.status==='rejected'?'selected':''} value="rejected">rejected</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Catatan</label><input type="text" id="eCat" value="${r.catatan||""}"></div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="item-table">
+      <thead><tr><th>Nama</th><th>Kategori</th><th>Keterangan</th><th>Jumlah</th><th></th></tr></thead>
+      <tbody id="editItemBody"></tbody>
+    </table>
+  </div>
+  <div class="total-bar" style="margin-top:8px;">Total: <span id="editGrandTotal">Rp 0</span></div>
+  <div style="margin-top:8px;"><button class="btn btn-sm" style="background:#eee;color:#333;" onclick="addEditItemRow()">+ Tambah</button></div>
+  <div class="modal-footer">
+    <button class="btn btn-danger" onclick="hapusPengajuan(${id})">🗑️ Hapus</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="saveEditPengajuan(${id})">Simpan</button>
+    <button class="btn" style="background:#eee;color:#333;" onclick="closeModal()">Batal</button>
+  </div>`);
+  renderEditItemRows();
+}
+
+function renderEditItemRows() {
+  const tbody = document.getElementById("editItemBody");
+  if (!tbody) return;
+  tbody.innerHTML = editDraftItems.map((item,i)=>`
+    <tr>
+      <td><input type="text" value="${item.namaBarang}" oninput="editDraftItems[${i}].namaBarang=this.value"></td>
+      <td><select onchange="editDraftItems[${i}].kategori=this.value">${catOptions(item.kategori)}</select></td>
+      <td><input type="text" value="${item.keterangan||''}" oninput="editDraftItems[${i}].keterangan=this.value"></td>
+      <td><input type="number" value="${item.jumlah}" oninput="editDraftItems[${i}].jumlah=this.value;updateEditTotal()" min="0"></td>
+      <td>${editDraftItems.length>1?`<button class="btn btn-danger btn-sm" onclick="removeEditItemRow(${i})">✕</button>`:""}</td>
+    </tr>`).join("");
+  updateEditTotal();
+}
+
+function addEditItemRow() { editDraftItems.push({ namaBarang:"", kategori:state.categories[0]||"", keterangan:"", jumlah:0, foto:"" }); renderEditItemRows(); }
+function removeEditItemRow(i) { editDraftItems.splice(i,1); renderEditItemRows(); }
+function updateEditTotal() {
+  const total = editDraftItems.reduce((s,i)=>s+(parseInt(i.jumlah)||0),0);
+  const el = document.getElementById("editGrandTotal");
+  if (el) el.textContent = fmtRp(total);
+}
+
+async function saveEditPengajuan(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  r.tanggal = document.getElementById("eTgl").value;
+  r.toko    = document.getElementById("eToko").value;
+  r.status  = document.getElementById("eStat").value;
+  r.catatan = document.getElementById("eCat").value;
+  r.items   = editDraftItems.map(i=>({...i, jumlah:parseInt(i.jumlah)||0}));
+  r.totalJumlah = calcTotal(r.items);
+  saveState();
+  showLoading("Menyimpan...");
+  await callServer("update", r);
+  hideLoading();
+  closeModal();
+  toast("✅ Tersimpan");
+  buildApprovePage();
+}
+
+async function hapusPengajuan(id) {
+  const r = state.pengajuan.find(x=>x.id===id);
+  if (!r) return;
+  if (!confirm(`Hapus pengajuan #${r.id}?`)) return;
+  state.pengajuan = state.pengajuan.filter(x=>x.id!==id);
+  saveState();
+  showLoading("Menghapus...");
+  await callServer("delete", {id});
+  hideLoading();
+  closeModal();
+  toast("🗑️ Terhapus");
+  buildApprovePage();
+}
+
+function cetakPDFAdmin() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("landscape");
+  doc.setFontSize(16); doc.text("Laporan Petty Cash", 14, 18);
+  doc.setFontSize(10); doc.text("Dicetak: " + new Date().toLocaleString("id-ID"), 14, 26);
+  const rows = state.pengajuan.map(r => [
+    fmtDate(r.tanggal), r.pengaju + " / " + r.toko,
+    r.items.map(it=>it.namaBarang).join(", "),
+    fmtRp(r.totalJumlah), r.status
+  ]);
+  doc.autoTable({
+    startY: 32, head: [["Tanggal","Pengaju/Toko","Item","Total","Status"]],
+    body: rows, styles:{ fontSize:9 }, headStyles:{ fillColor:[102,126,234] }
+  });
+  doc.save("laporan-petty-cash.pdf");
+}
+
+// ============================================================
+// MASTER: KATEGORI
+// ============================================================
+function renderKategori() {
+  setActive("mn-kat");
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card" style="max-width:500px;">
+    <h3>🏷️ Kategori</h3>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <input type="text" id="newKat" placeholder="Nama kategori" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;" onkeydown="if(event.key==='Enter') addKategori()">
+      <button class="btn btn-primary" onclick="addKategori()">Tambah</button>
+    </div>
+    <table><thead><tr><th>Kategori</th><th>Aksi</th></tr></thead>
+    <tbody>${state.categories.map((c,i)=>`<tr><td>${c}</td><td><button class="btn btn-danger btn-sm" onclick="delKat(${i})">Hapus</button></td></tr>`).join("")}</tbody></table>
+  </div>`;
+}
+async function addKategori() {
+  const v = document.getElementById("newKat").value.trim();
+  if (!v) return;
+  if (state.categories.includes(v)) { toast("Sudah ada.","error"); return; }
+  state.categories.push(v); saveState();
+  showLoading("Menyimpan...");
+  await callServer("saveMaster", {type:"kategori", list:state.categories});
+  hideLoading();
+  toast("✅ Ditambahkan");
+  renderKategori();
+}
+async function delKat(i) {
+  if (!confirm("Hapus?")) return;
+  state.categories.splice(i, 1); saveState();
+  await callServer("saveMaster", {type:"kategori", list:state.categories});
+  renderKategori();
+}
+
+// ============================================================
+// MASTER: TOKO
+// ============================================================
+function renderToko() {
+  setActive("mn-toko");
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card" style="max-width:500px;">
+    <h3>🏪 Toko</h3>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <input type="text" id="newToko" placeholder="Nama toko" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;" onkeydown="if(event.key==='Enter') addToko()">
+      <button class="btn btn-primary" onclick="addToko()">Tambah</button>
+    </div>
+    <table><thead><tr><th>Toko</th><th>Aksi</th></tr></thead>
+    <tbody>${state.toko.map((t,i)=>`<tr><td>${t}</td><td><button class="btn btn-danger btn-sm" onclick="delToko(${i})">Hapus</button></td></tr>`).join("")}</tbody></table>
+  </div>`;
+}
+async function addToko() {
+  const v = document.getElementById("newToko").value.trim();
+  if (!v) return;
+  if (state.toko.includes(v)) { toast("Sudah ada.","error"); return; }
+  state.toko.push(v); saveState();
+  showLoading("Menyimpan...");
+  await callServer("saveMaster", {type:"toko", list:state.toko});
+  hideLoading();
+  toast("✅ Ditambahkan");
+  renderToko();
+}
+async function delToko(i) {
+  if (!confirm("Hapus?")) return;
+  state.toko.splice(i, 1); saveState();
+  await callServer("saveMaster", {type:"toko", list:state.toko});
+  renderToko();
+}
+
+// ============================================================
+// MASTER: MODAL
+// ============================================================
+function renderModal() {
+  setActive("mn-modal");
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card" style="max-width:400px;">
+    <h3>💵 Modal Kas</h3>
+    <div class="summary-card" style="margin-bottom:20px;">
+      <div class="num">${fmtRp(state.modal)}</div><div class="label">Saat Ini</div>
+    </div>
+    <div class="form-group"><label>Jumlah (Rp)</label><input type="number" id="newModal" placeholder="0" style="padding:10px;border:1px solid #ddd;border-radius:8px;width:100%;"></div>
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button class="btn btn-primary" onclick="tambahModal()">+ Tambah</button>
+      <button class="btn btn-warning" onclick="setModal()">Set</button>
+    </div>
+  </div>`;
+}
+async function tambahModal() {
+  const v = parseInt(document.getElementById("newModal").value)||0;
+  if (v<=0) { toast("Jumlah tidak valid.","error"); return; }
+  state.modal += v; saveState();
+  await callServer("saveMaster", {type:"modal", value:state.modal});
+  toast("✅ Modal bertambah"); renderModal();
+}
+async function setModal() {
+  const v = parseInt(document.getElementById("newModal").value)||0;
+  if (v<=0) { toast("Jumlah tidak valid.","error"); return; }
+  state.modal = v; saveState();
+  await callServer("saveMaster", {type:"modal", value:state.modal});
+  toast("✅ Modal diset"); renderModal();
+}
+
+// ============================================================
+// MASTER: KARYAWAN
+// ============================================================
+function renderKaryawan() {
+  setActive("mn-kar");
+  document.getElementById("mainContent").innerHTML = `
+  <div class="card">
+    <h3>👥 Karyawan</h3>
+    <div style="margin-bottom:16px;"><button class="btn btn-primary" onclick="formTambahUser()">+ Tambah</button></div>
+    <div class="desktop-table">
+      <table>
+        <thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Toko</th><th>Email</th><th>No WA</th><th>Aksi</th></tr></thead>
+        <tbody>${state.users.map(u=>`
+          <tr>
+            <td>${u.nama}</td><td>${u.username}</td>
+            <td><span class="badge badge-${u.role}">${u.role}</span></td>
+            <td>${u.toko}</td><td>${u.email||"-"}</td><td>${u.noWa||"-"}</td>
+            <td>
+              <button class="btn btn-warning btn-sm" onclick="editUser(${u.id})">✏️</button>
+              ${u.id!==currentUser.id?`<button class="btn btn-danger btn-sm" onclick="delUser(${u.id})">🗑️</button>`:""}
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="mobile-card">
+      ${state.users.map(u=>`<div class="m-card">
+        <div class="m-card-header">
+          <div><div class="m-card-title">${u.nama}</div><div class="m-card-sub">@${u.username} • ${u.toko}</div></div>
+          <span class="badge badge-${u.role}">${u.role}</span>
+        </div>
+        <div class="m-card-row"><span class="lbl">Email</span><span>${u.email||"-"}</span></div>
+        <div class="m-card-row"><span class="lbl">WA</span><span>${u.noWa||"-"}</span></div>
+        <div class="m-card-actions">
+          <button class="btn btn-warning btn-sm" onclick="editUser(${u.id})">✏️ Edit</button>
+          ${u.id!==currentUser.id?`<button class="btn btn-danger btn-sm" onclick="delUser(${u.id})">🗑️ Hapus</button>`:""}
+        </div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function formTambahUser() {
+  openModal(`
+  <h3>➕ Tambah Pengguna</h3>
+  <div class="form-group"><label>Nama</label><input type="text" id="uNama" placeholder="Nama lengkap"></div>
+  <div class="form-row">
+    <div class="form-group"><label>Username</label><input type="text" id="uUser"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="uPass"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Role</label>
+      <select id="uRole"><option value="staf">Staf</option><option value="admin">Admin</option></select>
+    </div>
+    <div class="form-group"><label>Toko</label>
+      <select id="uToko">${state.toko.map(t=>`<option>${t}</option>`).join("")}<option value="Semua">Semua</option></select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Email</label><input type="email" id="uEmail" placeholder="untuk notifikasi"></div>
+    <div class="form-group"><label>No WhatsApp</label><input type="text" id="uWa" placeholder="628xxx"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" onclick="saveTambahUser()">Simpan</button>
+    <button class="btn" style="background:#eee;color:#333;" onclick="closeModal()">Batal</button>
+  </div>`);
+}
+
+async function saveTambahUser() {
+  const nama = document.getElementById("uNama").value.trim();
+  const user = document.getElementById("uUser").value.trim();
+  const pass = document.getElementById("uPass").value.trim();
+  const role = document.getElementById("uRole").value;
+  const toko = document.getElementById("uToko").value;
+  const email = document.getElementById("uEmail").value.trim();
+  const noWa  = document.getElementById("uWa").value.trim();
+  if (!nama||!user||!pass) { toast("Lengkapi data.","error"); return; }
+  if (state.users.find(u=>u.username===user)) { toast("Username sudah ada.","error"); return; }
+  const newId = state.users.length ? Math.max(...state.users.map(u=>u.id))+1 : 1;
+  state.users.push({ id:newId, username:user, password:pass, role, nama, toko, email, noWa });
+  saveState();
+  showLoading("Menyimpan...");
+  await callServer("saveMaster", {type:"users", list:state.users});
+  hideLoading();
+  closeModal();
+  toast("✅ Ditambahkan");
+  renderKaryawan();
+}
+
+function editUser(id) {
+  const u = state.users.find(x=>x.id===id);
+  if (!u) return;
+  openModal(`
+  <h3>✏️ Edit Pengguna</h3>
+  <div class="form-group"><label>Nama</label><input type="text" id="euNama" value="${u.nama}"></div>
+  <div class="form-row">
+    <div class="form-group"><label>Username</label><input type="text" id="euUser" value="${u.username}"></div>
+    <div class="form-group"><label>Password Baru</label><input type="password" id="euPass" placeholder="Kosongkan jika tidak diubah"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Role</label>
+      <select id="euRole">
+        <option ${u.role==='staf'?'selected':''} value="staf">Staf</option>
+        <option ${u.role==='admin'?'selected':''} value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Toko</label>
+      <select id="euToko">
+        ${state.toko.map(t=>`<option ${t===u.toko?'selected':''}>${t}</option>`).join("")}
+        <option ${u.toko==='Semua'?'selected':''} value="Semua">Semua</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Email</label><input type="email" id="euEmail" value="${u.email||''}"></div>
+    <div class="form-group"><label>No WA</label><input type="text" id="euWa" value="${u.noWa||''}"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" onclick="saveEditUser(${id})">Simpan</button>
+    <button class="btn" style="background:#eee;color:#333;" onclick="closeModal()">Batal</button>
+  </div>`);
+}
+
+async function saveEditUser(id) {
+  const u = state.users.find(x=>x.id===id);
+  if (!u) return;
+  u.nama = document.getElementById("euNama").value.trim();
+  u.username = document.getElementById("euUser").value.trim();
+  const np = document.getElementById("euPass").value.trim();
+  if (np) u.password = np;
+  u.role = document.getElementById("euRole").value;
+  u.toko = document.getElementById("euToko").value;
+  u.email = document.getElementById("euEmail").value.trim();
+  u.noWa  = document.getElementById("euWa").value.trim();
+  saveState();
+  showLoading("Menyimpan...");
+  await callServer("saveMaster", {type:"users", list:state.users});
+  hideLoading();
+  closeModal();
+  toast("✅ Tersimpan");
+  renderKaryawan();
+}
+
+async function delUser(id) {
+  if (!confirm("Hapus pengguna?")) return;
+  state.users = state.users.filter(u=>u.id!==id); saveState();
+  await callServer("saveMaster", {type:"users", list:state.users});
+  renderKaryawan();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById("loginPass").addEventListener("keydown", e => { if(e.key==="Enter") doLogin(); });
+</script>
+</body>
+</html>
